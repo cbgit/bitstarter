@@ -26,6 +26,8 @@ var program = require('commander');
 var cheerio = require('cheerio');
 var HTMLFILE_DEFAULT = "index.html";
 var CHECKSFILE_DEFAULT = "checks.json";
+var res=require('restler');
+var tempfile='test.html';
 
 var assertFileExists = function(infile) {
     var instr = infile.toString();
@@ -61,14 +63,31 @@ var clone = function(fn) {
     return fn.bind({});
 };
 
+var download_url=function(program,fname){
+	res.get(program.url).on('complete',function(results){
+	fs.writeFileSync(fname,results);
+	});
+}
+
 if(require.main == module) {
     program
         .option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
         .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT)
+	.option('-u, --url <url_name>','Web address')
         .parse(process.argv);
-    var checkJson = checkHtmlFile(program.file, program.checks);
-    var outJson = JSON.stringify(checkJson, null, 4);
-    console.log(outJson);
+	if (!program.url){
+		var checkJson = checkHtmlFile(program.file, program.checks);
+		var outJson = JSON.stringify(checkJson, null, 4);
+ 		console.log(outJson);
+	}else{
+				res.get(program.url).on('complete',function(results){
+		        	fs.writeFileSync(tempfile,results);
+			        var checkJson= checkHtmlFile(tempfile, program.checks);
+  				var outJson = JSON.stringify(checkJson, null, 4);
+				console.log(outJson);
+				fs.unlink(tempfile);
+				});
+	 	}
 } else {
     exports.checkHtmlFile = checkHtmlFile;
 }
