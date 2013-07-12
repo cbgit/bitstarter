@@ -38,8 +38,12 @@ var assertFileExists = function(infile) {
     return instr;
 };
 
-var cheerioHtmlFile = function(htmlfile) {
-    return cheerio.load(fs.readFileSync(htmlfile));
+var cheerioHtmlFile = function(html) {
+    if (fs.existsSync(html)){
+	    return cheerio.load(fs.readFileSync(html));
+    }else{
+	return cheerio.load(html);
+	}
 };
 
 var loadChecks = function(checksfile) {
@@ -69,25 +73,28 @@ var download_url=function(program,fname){
 	});
 }
 
+var print_results=function(checkJson){
+	var outJson=JSON.stringify(checkJson,null,4);
+	console.log(outJson);
+}
+
 if(require.main == module) {
     program
         .option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
         .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT)
 	.option('-u, --url <url_name>','Web address')
         .parse(process.argv);
+	var checkJson="";
 	if (!program.url){
 		var checkJson = checkHtmlFile(program.file, program.checks);
-		var outJson = JSON.stringify(checkJson, null, 4);
- 		console.log(outJson);
+		print_results(checkJson);
 	}else{
-				res.get(program.url).on('complete',function(results){
-		        	fs.writeFileSync(tempfile,results);
-			        var checkJson= checkHtmlFile(tempfile, program.checks);
-  				var outJson = JSON.stringify(checkJson, null, 4);
-				console.log(outJson);
-				fs.unlink(tempfile);
-				});
-	 	}
+		res.get(program.url).on('complete',function(results){
+	        var checkJson= checkHtmlFile(results, program.checks);
+		print_results(checkJson);
+		});
+	     }
+
 } else {
     exports.checkHtmlFile = checkHtmlFile;
 }
